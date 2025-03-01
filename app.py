@@ -1,14 +1,12 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import os
 
 app = Flask(__name__)
 
-# 📁 Složka pro nahrávání souborů
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ✅ Cesta k souboru s daty (pokud není, zobrazí se výchozí zpráva)
 DATA_FILE = os.path.join(UPLOAD_FOLDER, "data.xlsx")
 
 @app.route("/", methods=["GET", "POST"])
@@ -20,7 +18,6 @@ def home():
             file.save(file_path)
             return "✅ Soubor byl nahrán! <a href='/'>Zpět</a>"
 
-    # 🔹 Načítání dat z Excelu
     if os.path.exists(DATA_FILE):
         df = pd.read_excel(DATA_FILE)
         table_html = df.to_html(classes="table table-striped", index=False)
@@ -28,6 +25,14 @@ def home():
         table_html = "<p>❌ Žádný soubor s daty není k dispozici. Nahrajte nový!</p>"
 
     return render_template("table.html", table=table_html)
+
+# ✅ API, které vrátí data ve formátu JSON
+@app.route("/data", methods=["GET"])
+def get_data():
+    if os.path.exists(DATA_FILE):
+        df = pd.read_excel(DATA_FILE)
+        return jsonify(df.to_dict(orient="records"))
+    return jsonify({"error": "Soubor data.xlsx nebyl nalezen!"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
